@@ -298,3 +298,4 @@ class Null7media_Plugin {
 		return $template;
 
 	}
+}
