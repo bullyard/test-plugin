@@ -83,9 +83,8 @@ class Null7media_Plugin {
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 
-		$this->templates = array(
-		'nul7media-template.php' => 'Currency converter template',
-	);
+		$this->templates = array('null7media-template.php' => 'Currency converter template');
+
 
 	}
 
@@ -168,10 +167,10 @@ class Null7media_Plugin {
 		// add page template to list on page edit
 		if ( version_compare( floatval( get_bloginfo( 'version' ) ), '4.7', '<' ) ) {
 			// 4.6 and older
-			$this->loader->add_filter( 'page_attributes_dropdown_pages_args', $plugin_admin, 'register_project_templates' );
+			$this->loader->add_filter( 'page_attributes_dropdown_pages_args', $this, 'register_project_templates' );
 		} else {
 			// Add a filter to the wp 4.7 version attributes metabox
-			$this->loader->add_filter( 'theme_page_templates', $plugin_admin, 'add_new_template' );
+			$this->loader->add_filter( 'theme_page_templates', $this, 'add_new_template' );
 		}
 	}
 
@@ -189,9 +188,13 @@ class Null7media_Plugin {
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
+		$this->loader->add_action( 'wp_ajax_currency_ajax', $this, 'process_ajax' );
+		$this->loader->add_action( 'wp_ajax_nopriv_currency_ajax', $this, 'process_ajax' );
+
+
 
 		//load template on public
-		$this->loader->add_action( 'template_include', $plugin_public, 'view_project_template' );
+		$this->loader->add_action( 'template_include', $this, 'view_project_template' );
 
 	}
 
@@ -235,11 +238,23 @@ class Null7media_Plugin {
 		return $this->version;
 	}
 
+	/**
+	 * attachs template list for new WP
+	 *
+	 * @since     1.0.0
+	 *
+	 */
 	public function add_new_template( $posts_templates ) {
 		$posts_templates = array_merge( $posts_templates, $this->templates );
 		return $posts_templates;
 	}
 
+	/**
+	 * attachs template list
+	 *
+	 * @since     1.0.0
+	 *
+	 */
 	public function register_project_templates( $atts ) {
 
 		// Create the key used for the themes cache
@@ -266,7 +281,12 @@ class Null7media_Plugin {
 		return $atts;
 
 	}
-
+	/**
+	 * selects template when requested
+	 *
+	 * @since     1.0.0
+	 *
+	 */
 	public function view_project_template( $template ) {
 		// Get global post
 		global $post;
@@ -298,4 +318,83 @@ class Null7media_Plugin {
 		return $template;
 
 	}
+
+	private function log2db($val){
+		global $wpdb;
+		$sql = $wpdb->prepare(
+		" INSERT INTO {$wpdb->prefix}".BY_CONF_tablename." (log_result)
+									  values(%s)", $val);
+		$wpdb->query( $sql );
+
+	}
+
+	public static function get_form_HTML(){
+
+		echo "<h1>".__('Velg antall USD du ønsker å konvertere til NOK med dagens kurs', 'null7media')."</h1>";
+
+		echo "<input type='number' id='convertionInput' name='USD' value='' />";
+		echo "<button id='serverBtn'>".__('Konverter via ajax', 'null7media')."</button><br />";
+		echo "<div id='formOutput'></div>";
+
+
+	}
+
+	public function convert_USDNOK($val){
+
+			$key = md5('plugin_cache2_'.$val);
+
+			$stored = get_transient($key);
+			if ($stored === false){
+
+				$apiBase = "https://api.fixer.io/latest?base=USD";
+				$request = wp_remote_get( $apiBase );
+
+				if( is_wp_error( $request ) ) {
+					return false;
+				}
+
+				$respArray = json_decode(wp_remote_retrieve_body( $request ), true);
+				$rates = $respArray['rates'];
+
+				if ($rates['NOK']){
+					$result = number_format($val*$rates['NOK'], 2, ',', ' ');
+
+					//store
+					set_transient($key, $result, 60*5); // two minutes
+
+					// log
+					$this->log2db($result);
+
+					// return
+					return $result;
+
+				}
+
+				return false;
+
+			}else return $stored. " [cached] ";
+
+	}
+
+	public function process_ajax(){
+
+
+		$passedVal = "";
+		if (is_numeric($_REQUEST['val'])) {
+			$passedVal = $_REQUEST['val'];
+			$calculated = $this->convert_USDNOK($passedVal);
+
+			if ($calculated !==false) {
+				$convertedValue = sprintf( esc_html__( '%s USD tilsvarer idag %s NOK', 'null7media' ), $passedVal, $calculated );
+			}
+		}
+
+		if (isset($convertedValue)) echo $convertedValue;
+		else  echo  __("Beløpet du tastet inn kunne ikke konverteres", 'null7media');
+		 wp_die();
+	}
+
+
+
+
 }

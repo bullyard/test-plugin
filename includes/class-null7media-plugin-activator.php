@@ -37,7 +37,7 @@ class Null7media_Plugin_Activator {
 
 		$sql = "CREATE TABLE ".$table_name." (
 			id int(9) NOT NULL AUTO_INCREMENT,
-			log_query varchar(255) DEFAULT NULL,
+			log_result varchar(255) DEFAULT NULL,
 			timestamp datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id)
 			) $charset_collate;";
