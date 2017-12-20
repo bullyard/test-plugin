@@ -23,14 +23,29 @@
 class Null7media_Plugin_Activator {
 
 	/**
-	 * Short Description. (use period)
+	 * Creates table for logging when plugin is activated
 	 *
-	 * Long Description.
+	 *
 	 *
 	 * @since    1.0.0
 	 */
 	public static function activate() {
+		global $wpdb;
 
+		$table_name = $wpdb->prefix . BY_CONF_tablename;
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE ".$table_name." (
+			id int(9) NOT NULL AUTO_INCREMENT,
+			log_query varchar(255) DEFAULT NULL,
+			timestamp datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			PRIMARY KEY  (id)
+			) $charset_collate;";
+
+		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+		dbDelta( $sql );
+
+		add_option( 'by_db_version', BY_CONF_table_version );
 	}
 
 }
