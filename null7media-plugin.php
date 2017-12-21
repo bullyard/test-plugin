@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       null7media-plugin
  * Plugin URI:        http://07media.no
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       Enkel plugin som registrerer en sidetemplate slik at dette kan velges for enkelte sider. Templaten beytter seg av ajax for å innhente valutakurs og vise dette på siden. Pluginen er basert på en plugin-boilerplate som forenkler og effektiviserer utviklingen av plugins.
  * Version:           1.0.0
  * Author:            Rodrigo
  * Author URI:        http://bullyard.no
